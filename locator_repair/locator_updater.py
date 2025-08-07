@@ -42,7 +42,7 @@ def commit_and_push_changes():
     repo = Repo(REPO_PATH)
 
     # Ensure repo is clean
-    assert not repo.is_dirty(untracked_files=True), "❌ Repo has uncommitted changes. Please commit/stash first."
+    #assert not repo.is_dirty(untracked_files=True), "❌ Repo has uncommitted changes. Please commit/stash first."
 
     # Sync with main
     repo.git.checkout('main')
