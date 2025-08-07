@@ -38,26 +38,30 @@ def update_locator_by_variable(locator_file_path, locator_name, new_locator):
 def commit_and_push_changes():
     repo = Repo(REPO_PATH)
 
-    # ✅ Add and commit changes BEFORE switching branches
-    if repo.is_dirty(untracked_files=True):
-        repo.git.add(A=True)  # or repo.git.add(LOCATOR_FILE_PATH) if you only want one file
-        repo.index.commit("Auto-staged: Save changes before branch switch")
+    current_branch = repo.active_branch.name
+    print(f"🌿 Current branch: {current_branch}")
 
-    # ✅ Now it's safe to switch branches
-    repo.git.checkout('main')
-    repo.git.pull()
-
-    # Create new branch for push
+    # Step 1: Create new branch from current working branch (e.g., ai-locator)
     try:
         repo.git.checkout('-b', BRANCH_NAME)
     except GitCommandError:
-        print(f"⚠️ Branch '{BRANCH_NAME}' exists. Switching to it.")
+        print(f"⚠️ Branch '{BRANCH_NAME}' already exists. Checking it out.")
         repo.git.checkout(BRANCH_NAME)
 
-    # Optionally commit again here if you want a separate commit for the fix
-    # repo.git.add(LOCATOR_FILE_PATH)
-    # repo.index.commit("AI Fix: Broken locator updated")
+    # Step 2: Pull latest main and merge into this new branch
+    repo.git.fetch('origin', 'main')  # fetch updates from remote
+    repo.git.merge('origin/main')     # merge into the current (new) branch
+    print("🔄 Merged latest changes from origin/main")
 
+    # Step 3: Stage and commit any local changes
+    if repo.is_dirty(untracked_files=True):
+        repo.git.add(A=True)
+        repo.index.commit(f"AI Fix: Broken locator committed to {BRANCH_NAME}")
+        print("✅ Local changes committed.")
+    else:
+        print("⚠️ No local changes to commit.")
+
+    # Step 4: Push new branch to origin
     repo.git.push('--set-upstream', 'origin', BRANCH_NAME)
     print(f"🚀 Changes pushed to branch '{BRANCH_NAME}'")
 
