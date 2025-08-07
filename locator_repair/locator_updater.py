@@ -1,6 +1,6 @@
 import re
 from locator_repair.config import LOCATOR_FILE_PATH, REPO_PATH, BRANCH_NAME
-from git import Repo
+from git import GitCommandError, Repo
 
 def update_locator_by_variable(locator_file_path, locator_name, new_locator):
     """
@@ -36,22 +36,32 @@ def update_locator_by_variable(locator_file_path, locator_name, new_locator):
         print(f"⚠️ Locator variable '{locator_name}' not found in {locator_file_path}")
 
 def commit_and_push_changes():
-    """
-    Creates a new branch, commits updated locator file, and pushes to origin.
-    """
     repo = Repo(REPO_PATH)
 
-    # Ensure repo is clean
-    assert not repo.is_dirty(untracked_files=True), "❌ Repo has uncommitted changes. Please commit/stash first."
+    current_branch = repo.active_branch.name
+    print(f"🌿 Current branch: {current_branch}")
 
-    # Sync with main
-    repo.git.checkout('main')
-    repo.git.pull()
+    # Step 1: Create new branch from current working branch (e.g., ai-locator)
+    try:
+        repo.git.checkout('-b', BRANCH_NAME)
+    except GitCommandError:
+        print(f"⚠️ Branch '{BRANCH_NAME}' already exists. Checking it out.")
+        repo.git.checkout(BRANCH_NAME)
 
-    # Create new branch and commit
-    repo.git.checkout('-b', BRANCH_NAME)
-    repo.git.add(LOCATOR_FILE_PATH)
-    repo.index.commit("AI Fix: Broken locator updated")
+    # Step 2: Pull latest main and merge into this new branch
+    repo.git.fetch('origin', 'main')  # fetch updates from remote
+    repo.git.merge('origin/main')     # merge into the current (new) branch
+    print("🔄 Merged latest changes from origin/main")
+
+    # Step 3: Stage and commit any local changes
+    if repo.is_dirty(untracked_files=True):
+        repo.git.add(A=True)
+        repo.index.commit(f"AI Fix: Broken locator committed to {BRANCH_NAME}")
+        print("✅ Local changes committed.")
+    else:
+        print("⚠️ No local changes to commit.")
+
+    # Step 4: Push new branch to origin
     repo.git.push('--set-upstream', 'origin', BRANCH_NAME)
-
     print(f"🚀 Changes pushed to branch '{BRANCH_NAME}'")
+
